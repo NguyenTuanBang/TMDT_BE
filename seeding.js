@@ -31,8 +31,8 @@ const MONGO_URI = process.env.DB
 
 cloudinary.v2.config({
   cloud_name: 'dm8ydkx0k',
-  api_key: '459493556211974',
-  api_secret: '0Js-GZ7rBCTntz7Gl1jcCmmwNUI'
+  api_key: process.env.CloudinaryKey,
+  api_secret: process.env.CloudinarySecretKey
 });
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
