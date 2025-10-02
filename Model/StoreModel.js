@@ -1,14 +1,17 @@
 import mongoose from "mongoose";
 
 const storeSchema = new mongoose.Schema({
-    owner_id: {
+    user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
     },
     address: { type: String, required: true },
     name: { type: String, required: true },
-    area: { type: mongoose.Schema.Types.ObjectId, ref: 'Area' },
-    status: { type: String},
+    status: { 
+        type: String,
+        enum: ["Pending", "Approval", "Reject"],
+        default: "Pending"
+    },
 }, {
     timestamps: true
 })

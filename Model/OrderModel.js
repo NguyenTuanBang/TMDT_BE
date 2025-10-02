@@ -1,10 +1,9 @@
 import mongoose from "mongoose";
 
 const OrderSchema = new mongoose.Schema({
-    user:{
+    contact:{
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true
+        ref: "Address"
     },
     total_amount:{
         type: Number,
@@ -14,10 +13,9 @@ const OrderSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-    status:{
-        type: String,
-        enum: ['PENDING', 'CONFIRMED', 'SHIPPING', 'DELIVERED', 'CANCELLED'],
-        default: 'PENDING'
+    promotion:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Promotion",
     }
 }, { timestamps: true });
 

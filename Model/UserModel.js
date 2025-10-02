@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import validator from "validator";
 import bcrypt from "bcrypt";
+import { ref } from "process";
 
 const userSchema = new mongoose.Schema(
    {
@@ -43,21 +44,16 @@ const userSchema = new mongoose.Schema(
       default: "default.jpg",
     },
 
-    address: [
+
+
+    address:[
       {
-        name: String,
-        phone: String,
-        province: String,
-        district: String,
-        ward: String,
-        detail: String,
-      },
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Addresss"
+      }
     ],
 
-    balance: {
-      type: Number,
-      default: 0,
-    },
+
 
     rank: {
       type: String,
@@ -67,7 +63,7 @@ const userSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ["user", "seller", "shipper", "admin"],
+      enum: ["user", "seller", "admin"],
       default: "user",
     },
 

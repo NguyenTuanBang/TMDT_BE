@@ -6,7 +6,7 @@ const productVariantsSchema = new mongoose.Schema({
         ref: 'Product',
         required: true
     },
-    image_id: {
+    image: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Image',
         required: true
@@ -20,9 +20,42 @@ const productVariantsSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    price: {
+        type: Number,
+        required: true
+    }
 }, {
     timestamps: true
 });
+
+// Hàm helper để update CartItem khi giá variant thay đổi
+async function updateCartItems(doc) {
+    if (doc) {
+        await mongoose.model("CartItem").updateMany(
+            { variant_id: doc._id },
+            [
+                {
+                    $set: {
+                        unitPrice: doc.price,
+                        finalPrice: { $multiply: ["$quantity", doc.price] },
+                    },
+                },
+            ]
+        );
+    }
+}
+
+// Trigger sau khi update bằng findOneAndUpdate
+productVariantsSchema.post("findOneAndUpdate", async function (doc) {
+    await updateCartItems(doc);
+});
+
+// Trigger sau khi save (create hoặc save thủ công)
+productVariantsSchema.post("save", async function (doc) {
+    await updateCartItems(doc);
+});
+
+
 
 const ProductVariantsModel = mongoose.model("ProductVariants", productVariantsSchema);
 export default ProductVariantsModel;

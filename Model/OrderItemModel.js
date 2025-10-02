@@ -15,10 +15,24 @@ const OrderItemSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-    price: {
+    unitPrice: {
         type: Number,
         required: true
+    },
+    finalPrice: {
+        type: Number,
+        required: true
+    },
+    status: {
+        type: String,
+        enum: ['PENDING', 'CONFIRMED', 'SHIPPING', 'DELIVERED', 'CANCELLED'],
+        default: 'PENDING'
+    },
+    promotion: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Promotion",
     }
+
 });
 
 const OrderItemModel = mongoose.model("OrderItem", OrderItemSchema);

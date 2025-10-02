@@ -2,35 +2,32 @@ import mongoose from "mongoose";
 
 const productSchema = new mongoose.Schema({
     name: { type: String, required: true },
-    base_price: { type: Number, required: true },
-    tags_id: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Tag'
-        }
-    ],
     store_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Store',
         required: true
     },
-    sizes_id: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Size'
-        }
-    ],
     description: { type: String, required: true },
     totalRating: { type: Number, default: 0 },
-    numOfReviews: { type: Number, default: 0 },
-    traded: { type: Number, default: 0 },
+    tradedCount: { type: Number, default: 0 },
+    countRating: { type: Number, default: 0 },
+    rating: { type: Number, default: 0 },
+    status: {
+        type: String,
+        enum:["Pending", "Approval", "Reject"],
+        default: "Pending"
+    }
 }, {
     timestamps: true
 });
 
-productSchema.virtual('averageRating').get(function() {
-    if (this.numOfReviews === 0) return 0;
-    return this.totalRating / this.numOfReviews;
+productSchema.pre('save', function(next) {
+    if (this.countRating === 0) {
+        this.rating = 0;
+    } else {
+        this.rating = this.totalRating / this.countRating;
+    }
+    next();
 });
 productSchema.set('toObject', { virtuals: true });
 productSchema.set('toJSON', { virtuals: true });    
