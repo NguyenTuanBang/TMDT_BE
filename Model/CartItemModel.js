@@ -28,12 +28,16 @@ const cartItemSchema = new mongoose.Schema({
     }
 });
 
-cartItemSchema.post(["save", "findOneAndUpdate"], async function (doc) {
+cartItemSchema.post("save", async function (next) {
+    this.finalPrice = this.unitPrice*this.quantity
+    next()
+});
+cartItemSchema.post(["save", "deleteOne"], async function (next) {
     const CartStore = mongoose.model("CartStore");
     try {
-        if (doc.store_id) {
+        if (this.store_id) {
             // tìm cartStore tương ứng
-            const cartStore = await CartStore.findOne({ store_id: doc.store_id });
+            const cartStore = await CartStore.findOne({ store_id: this.store_id });
             if (cartStore) {
                 await cartStore.save(); 
                 const Cart = mongoose.model("Cart");
@@ -43,6 +47,7 @@ cartItemSchema.post(["save", "findOneAndUpdate"], async function (doc) {
                 }
             }
         }
+        next()
     } catch (err) {
         console.error("Error updating cart totals:", err);
     }

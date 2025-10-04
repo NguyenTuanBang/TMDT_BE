@@ -15,13 +15,16 @@ const CartStoreSchema = new mongoose.Schema({
     },
     shippingFee:{
         type: Number,
-        required: true
+        required: true,
+        default: 0
     },
     subTotal:{
-        type: Number
+        type: Number,
+        default: 0
     },
     finalTotal: {
-        type: Number
+        type: Number,
+        default: 0
     }
 },{
     timestamps: true

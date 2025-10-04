@@ -7,17 +7,20 @@ const cartSchema = new mongoose.Schema({
         required: true
     },
     shippingFee: {
-        type: Number
+        type: Number,
+        default:0
     },
     subTotal: {
-        type: Number
+        type: Number,
+        default: 0
     },
     promotion: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Promotion"
     },
     finalTotal: {
-        typ: Number
+        typ: Number,
+        default: 0
     }
 });
 
