@@ -222,6 +222,21 @@ const CartController = {
             console.error(error);
             return res.status(500).send({ message: error.message });
         }
+    },
+    changeCartItemState: async (req, res)=>{
+        try {
+            const user = req.user;
+            const { cartItemId } = req.body;
+            if (!cartItemId) {
+                return res.status(400).send({ message: "Missing cartItemId" });
+            }
+            const cartItem = await CartItemModel.findById(cartItemId)
+            cartItem.is_chosen = !cartItem.is_chosen
+            await cartItem.save()
+            res.status(200).send({ message: "Success" });
+        } catch (error) {
+            res.status(500).send({message: error.message})
+        }
     }
 };
 
