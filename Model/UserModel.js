@@ -41,13 +41,12 @@ const userSchema = new mongoose.Schema(
     },
 
     avatar: {
-      type: String,
-      default: "default.jpg",
+      type: String,     
     },
     address:[
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Addresss"
+        ref: "Address"
       }
     ],
     rank: {

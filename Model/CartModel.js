@@ -19,7 +19,7 @@ const cartSchema = new mongoose.Schema({
         ref: "Promotion"
     },
     finalTotal: {
-        typ: Number,
+        type: Number,
         default: 0
     }
 });

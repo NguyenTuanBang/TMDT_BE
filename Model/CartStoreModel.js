@@ -36,7 +36,7 @@ CartStoreSchema.pre("save", async function(next) {
         const CartItem = mongoose.model("CartItem");
 
         const result = await CartItem.aggregate([
-            { $match: { store: this.store, is_chosen: true } },
+            { $match: { cartStore_id: this._id, is_chosen: true} },
             {
                 $group: {
                     _id: null,

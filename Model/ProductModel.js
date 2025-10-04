@@ -14,8 +14,8 @@ const productSchema = new mongoose.Schema({
     rating: { type: Number, default: 0 },
     status: {
         type: String,
-        enum:["Pending", "Approval", "Reject"],
-        default: "Pending"
+        enum:["Đang bán", "Ngừng bán"],
+        default: "Đang bán"
     }
 }, {
     timestamps: true

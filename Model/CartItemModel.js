@@ -14,7 +14,7 @@ const cartItemSchema = new mongoose.Schema({
     quantity: {
         type: Number,
         required: true,
-        min: 1
+        min: 0
     },
     unitPrice: {
         type: Number,
@@ -25,33 +25,45 @@ const cartItemSchema = new mongoose.Schema({
     is_chosen:{
         type: Boolean,
         default: false
+    },
+    is_out_of_stock: {
+        type: Boolean,
+        default: false
     }
 });
 
-cartItemSchema.post("save", async function (next) {
+cartItemSchema.pre("save", async function (next) {
     this.finalPrice = this.unitPrice*this.quantity
     next()
 });
-cartItemSchema.post(["save", "deleteOne"], async function (next) {
+cartItemSchema.pre("save", async function(next) {
+    this.finalPrice = this.unitPrice * this.quantity;
+    await updateCartStoreAndCart(this.cartStore_id);
+    next();
+});
+
+cartItemSchema.pre("deleteOne", { document: true, query: false }, async function(next) {
+    await updateCartStoreAndCart(this.cartStore_id);
+    next();
+});
+
+// Helper
+async function updateCartStoreAndCart(cartStoreId) {
     const CartStore = mongoose.model("CartStore");
-    try {
-        if (this.store_id) {
-            // tìm cartStore tương ứng
-            const cartStore = await CartStore.findOne({ store_id: this.store_id });
-            if (cartStore) {
-                await cartStore.save(); 
-                const Cart = mongoose.model("Cart");
-                const cart = await Cart.findById(cartStore.cart_id);
-                if (cart) {
-                    await cart.save(); 
-                }
+    const Cart = mongoose.model("Cart");
+
+    if (cartStoreId) {
+        const cartStore = await CartStore.findById(cartStoreId);
+        if (cartStore) {
+            await cartStore.save();
+            const cart = await Cart.findById(cartStore.cart_id);
+            if (cart) {
+                await cart.save();
             }
         }
-        next()
-    } catch (err) {
-        console.error("Error updating cart totals:", err);
     }
-});
+}
+
 
 
 const CartItemModel = mongoose.model("CartItem", cartItemSchema);

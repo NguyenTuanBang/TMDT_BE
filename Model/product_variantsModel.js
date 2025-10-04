@@ -18,7 +18,8 @@ const productVariantsSchema = new mongoose.Schema({
     },
     quantity: {
         type: Number,
-        required: true
+        required: true,
+        min: 0
     },
     price: {
         type: Number,
@@ -27,6 +28,10 @@ const productVariantsSchema = new mongoose.Schema({
     SKU_code:{
         type: String,
         required: true
+    },
+    onDeploy: {
+        type: Boolean,
+        default: true
     }
 }, {
     timestamps: true
@@ -59,7 +64,17 @@ productVariantsSchema.post("save", async function (doc) {
     await updateCartItems(doc);
 });
 
-
+productVariantsSchema.pre("save", async function (next) {
+    if(this.quantity===0) this.onDeploy=false
+    const cart_item = mongoose.model("CartItem")
+    if(this.onDeploy===false){
+        await cart_item.find({variant_id: this._id})
+        cart_item.is_out_of_stock = true
+        cart_item.quantity = 0
+        await cart_item.save()
+    }
+    next()
+})
 
 const ProductVariantsModel = mongoose.model("ProductVariants", productVariantsSchema);
 export default ProductVariantsModel;

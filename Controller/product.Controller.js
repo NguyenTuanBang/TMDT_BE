@@ -13,47 +13,44 @@ const commonLookups = [
   },
   { $unwind: { path: "$store", preserveNullAndEmptyArrays: true } },
 
-  // join area trong store
-  {
-    $lookup: {
-      from: "areas",
-      localField: "store.area",
-      foreignField: "_id",
-      as: "store.area",
-    },
-  },
-  { $unwind: { path: "$store.area", preserveNullAndEmptyArrays: true } },
 
   // join tags
   {
     $lookup: {
-      from: "tags",
-      localField: "tags_id",
-      foreignField: "_id",
-      as: "tags",
+      from: "producttags",
+      let: {cid: "$_id"},
+      pipeline: [
+        {$match: { $expr: { $eq: ["$product_id", "$$cid"] } }},
+        {
+          $lookup:{
+            from: "tags",
+            localField: "tag_id",
+            foreignField: "_id",
+            as: "tag"
+          }
+        },
+        { $unwind: { path: "$tag", preserveNullAndEmptyArrays: true } },
+      ],
+      as: "producttags"
     },
   },
-
-
   {
     $lookup: {
-      from: "images",
-      let: { pid: "$_id" },
-      pipeline: [
-        { $match: { $expr: { $eq: ["$product_id", "$$pid"] } } },
-
-
+      from: "productvariants",
+      let: {pvid: "$_id"},
+      pipeline:[
+        {$match: { $expr: { $eq: ["$product_id", "$$pvid"] } }},
         {
-          $lookup: {
-            from: "colors",
-            localField: "color_id",
+          $lookup:{
+            from: "images",
+            localField: "image",
             foreignField: "_id",
-            as: "color",
-          },
+            as: "image"
+          }
         },
-        { $unwind: { path: "$color", preserveNullAndEmptyArrays: true } },
+        { $unwind: { path: "$image", preserveNullAndEmptyArrays: true } },
       ],
-      as: "img",
+      as: "variants"
     },
   }
 ]
@@ -61,12 +58,12 @@ const productController = {
   getAll: async (req, res) => {
     try {
       const curPage = parseInt(req.query.curPage) || 1;
-      const tagId = req.query.type;
       const name = req.query.name || "";
       const query = {};
 
-      if (tagId) query.tags_id = { $in: [new mongoose.Types.ObjectId(tagId)] };
+      
       if (name) query.name = { $regex: name, $options: "i" };
+      query.status = "Đang bán"
 
       const itemQuantity = await ProductModel.countDocuments(query);
       const numberOfPages = Math.ceil(itemQuantity / 20);
@@ -92,7 +89,7 @@ const productController = {
     try {
       const { id } = req.params;
       const data = await ProductModel.aggregate([
-        { $match: { _id: new mongoose.Types.ObjectId(id) } },
+        { $match: { _id: new mongoose.Types.ObjectId(id), status: "Đang bán" } },
         ...commonLookups,
       ]);
 
@@ -109,6 +106,7 @@ const productController = {
   getMostFavourite: async (req, res) => {
     try {
       const data = await ProductModel.aggregate([
+        {$match:{status: "Đang bán"}},
         { $sort: { traded_count: -1 } },
         { $limit: 10 },
         ...commonLookups,
@@ -123,6 +121,7 @@ const productController = {
   getTopRating: async (req, res) => {
     try {
       const data = await ProductModel.aggregate([
+        {$match:{status: "Đang bán"}},
         { $sort: { curRating: -1 } },
         { $limit: 10 },
         ...commonLookups,
@@ -143,10 +142,10 @@ const productController = {
       const totalResults = await ProductModel.countDocuments({ name: regex });
 
       const data = await ProductModel.aggregate([
-        { $match: { name: regex } },
+        { $match: { name: regex ,status: "Đang bán"} },
         { $limit: 5 },
         ...commonLookups,
-        { $addFields: { mainImage: { $first: "$images" } } },
+        { $addFields: { mainImage: { $first: "$variants.image" } } },
         { $project: { name: 1, mainImage: 1 } },
       ]);
 
@@ -175,7 +174,7 @@ const productController = {
       const numberOfPages = Math.ceil(itemQuantity / 20);
 
       const data = await ProductModel.aggregate([
-        { $match: rangeQuery },
+        { $match:{ ...rangeQuery, status: "Đang bán"}},
         ...commonLookups,
         { $skip: (curPage - 1) * 20 },
         { $limit: 20 },
@@ -198,7 +197,7 @@ const productController = {
       const numberOfPages = Math.ceil(itemQuantity / 20);
 
       const data = await ProductModel.aggregate([
-        { $match: { store_id: new mongoose.Types.ObjectId(storeId) } },
+        { $match: { store_id: new mongoose.Types.ObjectId(storeId), status: "Đang bán" } },
         ...commonLookups,
         { $skip: (curPage - 1) * 20 },
         { $limit: 20 },
