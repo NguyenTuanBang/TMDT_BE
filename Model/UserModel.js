@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import validator from "validator";
 import bcrypt from "bcrypt";
 import { ref } from "process";
+import { type } from "os";
 
 const userSchema = new mongoose.Schema(
    {
@@ -43,35 +44,26 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "default.jpg",
     },
-
-
-
     address:[
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Addresss"
       }
     ],
-
-
-
     rank: {
       type: String,
       enum: ["bronze", "silver", "gold"],
       default: "bronze",
     },
-
     role: {
       type: String,
       enum: ["user", "seller", "admin"],
       default: "user",
     },
-
     isActive: {
       type: Boolean,
       default: true,
     },
-
     otpReset: {
       code: String,
       expiresAt: Date,
@@ -80,8 +72,11 @@ const userSchema = new mongoose.Schema(
         default: 0,
       },
     },
+    totalSpend:{
+      type:Number,
+      default: 0
+    }
   },
-
   {
     timestamps: true,
   }
@@ -92,6 +87,11 @@ userSchema.pre("save", async function (next) {
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
+
+userSchema.pre("save", async function(next){
+  if(this.totalSpend>=5e8){this.rank==='gold'}else if(this.totalSpend>=1e8){this.rank==='silver'}
+  next()
+})
 
 const UserModel = mongoose.model("User", userSchema);
 export default UserModel;

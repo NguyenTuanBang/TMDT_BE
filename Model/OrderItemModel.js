@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
 
 const OrderItemSchema = new mongoose.Schema({
-    order_id: {
+    store: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Order',
+        ref: 'Store',
         required: true
     },
     variant_id: {
@@ -25,14 +25,9 @@ const OrderItemSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['PENDING', 'CONFIRMED', 'SHIPPING', 'DELIVERED', 'CANCELLED'],
+        enum: ['PENDING', 'CONFIRMED', 'DELIVERED', 'CANCELLED'],
         default: 'PENDING'
-    },
-    promotion: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Promotion",
     }
-
 });
 
 const OrderItemModel = mongoose.model("OrderItem", OrderItemSchema);

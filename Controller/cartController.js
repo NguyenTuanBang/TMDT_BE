@@ -9,52 +9,107 @@ const CartController = {
             const user = req.user;
             const cart = await CartModel.aggregate([
                 { $match: { user: user._id } },
+
                 {
                     $lookup: {
-                        from: "cartitems", 
+                        from: "cartstores",
                         let: { cid: "$_id" },
                         pipeline: [
-                            { $match: { $expr: { $eq: ["$cart", "$$cid"] } } },
+                            { $match: { $expr: { $eq: ["$cart_id", "$$cid"] } } },
+
                             {
                                 $lookup: {
-                                    from: "products",
-                                    localField: "product_id",
-                                    foreignField: "_id",
-                                    as: "product"
-                                }
-                            },
-                            { $unwind: { path: "$product", preserveNullAndEmptyArrays: true } },
-                            {
-                                $lookup: {
-                                    from: "productvariants",
-                                    let: { pvid: "$variant_id" },
+                                    from: "cartitems",
+                                    let: { csid: "$_id" },
                                     pipeline: [
-                                        { $match: { $expr: { $eq: ["$_id", "$$pvid"] } } },
+                                        { $match: { $expr: { $eq: ["$cartStore_id", "$$csid"] } } },
+
                                         {
                                             $lookup: {
-                                                from: "colors",
-                                                localField: "color",
-                                                foreignField: "_id",
-                                                as: "color"
+                                                from: "productvariants",
+                                                let: { pvid: "$variant_id" },
+                                                pipeline: [
+                                                    { $match: { $expr: { $eq: ["$_id", "$$pvid"] } } },
+
+                                                    {
+                                                        $lookup: {
+                                                            from: "products",
+                                                            localField: "product_id",
+                                                            foreignField: "_id",
+                                                            as: "Product_id"
+                                                        }
+                                                    },
+                                                    { $unwind: { path: "$Product_id", preserveNullAndEmptyArrays: true } },
+
+                                                    {
+                                                        $lookup: {
+                                                            from: "images",
+                                                            localField: "image",
+                                                            foreignField: "_id",
+                                                            as: "Image"
+                                                        }
+                                                    },
+                                                    { $unwind: { path: "$Image", preserveNullAndEmptyArrays: true } },
+
+                                                    {
+                                                        $lookup: {
+                                                            from: "sizes",
+                                                            localField: "size",
+                                                            foreignField: "_id",
+                                                            as: "Size"
+                                                        }
+                                                    },
+                                                    { $unwind: { path: "$Size", preserveNullAndEmptyArrays: true } }
+                                                ],
+                                                as: "Variant_id"
                                             }
                                         },
+                                        { $unwind: { path: "$Variant_id", preserveNullAndEmptyArrays: true } },
+
+                                        // format lại item
                                         {
-                                            $lookup: {
-                                                from: "sizes",
-                                                localField: "size",
-                                                foreignField: "_id",
-                                                as: "size"
+                                            $project: {
+                                                _id: 1,
+                                                cartStore_id: 1,
+                                                quantity: 1,
+                                                Variant_id: {
+                                                    _id: "$Variant_id._id",
+                                                    Product_id: "$Variant_id.Product_id",
+                                                    Image: "$Variant_id.Image",
+                                                    Size: "$Variant_id.Size",
+                                                    price: "$Variant_id.price" // các field khác của variant
+                                                }
                                             }
                                         }
-                                    ]
+                                    ],
+                                    as: "Item"
                                 }
                             },
-                            { $unwind: { path: "$variant", preserveNullAndEmptyArrays: true } }
+
+                            // project lại store
+                            {
+                                $project: {
+                                    _id: 1,
+                                    cart_id: 1,
+                                    store_id: 1,
+                                    Item: 1
+                                }
+                            }
                         ],
-                        as: "items"
+                        as: "Store"
+                    }
+                },
+
+                // cuối cùng format cart
+                {
+                    $project: {
+                        _id: 1,
+                        user: "$user",
+                        Store: 1
                     }
                 }
             ]);
+
             res.status(200).send(cart[0]);
         } catch (error) {
             console.error(error);
@@ -76,7 +131,7 @@ const CartController = {
             if (!cart) {
                 cart = await CartModel.create({ user: user._id });
             }
-            const variant = await ProductVariantsModel.create({productId, color, size, quantity});
+            const variant = await ProductVariantsModel.create({ productId, color, size, quantity });
             // Add item to cart
             const cartItem = {
                 cart: cart._id,

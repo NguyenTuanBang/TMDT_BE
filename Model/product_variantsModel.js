@@ -23,6 +23,10 @@ const productVariantsSchema = new mongoose.Schema({
     price: {
         type: Number,
         required: true
+    },
+    SKU_code:{
+        type: String,
+        required: true
     }
 }, {
     timestamps: true
