@@ -21,13 +21,10 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-app.use(express.json());
-app.use(cookieParser());
 const allowedOrigins = [
   "https://tmdt-fe-1.onrender.com",
   "http://localhost:5173"
 ];
-
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -40,6 +37,9 @@ app.use(
     credentials: true,
   })
 );
+app.use(express.json());
+app.use(cookieParser());
+
 
 mongoose.connect(process.env.DB);
 
