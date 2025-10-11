@@ -11,6 +11,8 @@ import { fileURLToPath } from 'url';
 import globalErrorHandle from './Controller/errorController.js';
 import AppError from './utils/appError.js';
 import tagsController from './Controller/tags.Controller.js';
+import orderRouter from "./Route/orderRoute.js"
+import promotionRoute from "./Route/promotionRouter.js"
 
 dotenvx.config();
 
@@ -44,7 +46,8 @@ mongoose.connect(process.env.DB);
 app.use("/api/users", userRouter);
 app.use('/api/cart', cartRouter);
 app.use('/products', productRouter);
-
+app.use('/order', orderRouter);
+app.use("/promotion", productRouter)
 
 
 // phục vụ file tĩnh
