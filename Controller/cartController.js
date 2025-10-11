@@ -3,6 +3,27 @@ import CartModel from "../Model/CartModel.js";
 import CartItemModel from "../Model/CartItemModel.js";
 import ProductVariantsModel from "../Model/product_variantsModel.js";
 import CartStoreModel from "../Model/CartStoreModel.js";
+import PromotionModel from "../Model/PromotionModel.js";
+import AddressModel from "../Model/AddressModel.js";
+
+
+function haversineDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // bán kính Trái Đất (km)
+
+    const toRad = angle => (angle * Math.PI) / 180;
+
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+
+    const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) ** 2;
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; // kết quả là km
+}
 
 const CartController = {
     getCart: async (req, res) => {
@@ -15,7 +36,7 @@ const CartController = {
                         from: "cartstores",
                         let: { cid: "$_id" },
                         pipeline: [
-                            { $match: { $expr: { $eq: ["$cart_id", "$$cid"] } } },
+                            { $match: { $expr: { $eq: ["$cart_id", "$$cid"] }, onDeploy: true } },
 
                             {
                                 $lookup: {
@@ -139,7 +160,9 @@ const CartController = {
                 }
             ]);
 
-            res.status(200).send(cart[0]);
+            res.status(200).send({
+                message: "Success",
+                data: cart[0]});
         } catch (error) {
             console.error(error);
             return res.status(500).send({ message: error.message });
@@ -187,7 +210,7 @@ const CartController = {
             }
 
             await cart.save()
-            res.status(200).send({ message: "Item added to cart", cart });
+            res.status(200).send({ message: "Item added to cart", cart, id: cart_item._id });
         } catch (error) {
             console.error(error);
             return res.status(500).send({ message: error.message });
@@ -223,7 +246,7 @@ const CartController = {
             return res.status(500).send({ message: error.message });
         }
     },
-    changeCartItemState: async (req, res)=>{
+    changeCartItemState: async (req, res) => {
         try {
             const user = req.user;
             const { cartItemId } = req.body;
@@ -235,8 +258,103 @@ const CartController = {
             await cartItem.save()
             res.status(200).send({ message: "Success" });
         } catch (error) {
-            res.status(500).send({message: error.message})
+            res.status(500).send({ message: error.message })
         }
+    },
+    addPromotion: async (req, res) => {
+        try {
+            const user = req.user
+            const { promotion_id } = req.body
+            const promo = await PromotionModel.findById(promotion_id)
+            if (!promo) return res.status(404).send({ message: "Not Found" })
+            const cart = await CartModel.findOne({ user: user._id })
+            if (promo.scope === "global") {
+                cart.promotion = promotion_id
+                await cart.save()
+            } else if (promo.scope === "store") {
+                const cartStore = await CartStoreModel.findOne({ cart_id: cart._id })
+                cartStore.promotion = promotion_id
+                await cartStore.save()
+            }
+            res.status(200).send({ message: "Success" })
+        } catch (error) {
+            res.status(500).send({ message: error.message })
+        }
+    },
+    checkShippingFee: async (req, res) => {
+        try {
+            const { addressId, CartId } = req.body;
+            const user = req.user;
+
+            const storeCarts = await CartStoreModel.aggregate([
+                {
+                    $match: { cartId: new mongoose.Types.ObjectId(CartId) }
+                },
+                {
+                    $lookup: {
+                        from: "stores",
+                        localField: "store_id",
+                        foreignField: "_id",
+                        as: "store"
+                    }
+                },
+                { $unwind: "$store" },
+                {
+                    $lookup: {
+                        from: "cartitems",
+                        localField: "_id",
+                        foreignField: "cartStore_id",
+                        as: "items"
+                    }
+                },
+                {
+                    $addFields: {
+                        items: {
+                            $filter: {
+                                input: "$items",
+                                as: "item",
+                                cond: { $eq: ["$$item.isChosen", true] }
+                            }
+                        }
+                    }
+                },
+                {
+                    $match: { "items.0": { $exists: true } }
+                }
+            ]);
+
+            const address = await AddressModel.findById(addressId);
+            if (!address) return res.status(400).send({ message: "Please choose your adrress!" })
+
+            await Promise.all(
+                storeCarts.map(async store => {
+                    const storeDoc = await CartStoreModel.findById(store._id);
+                    if (!storeDoc) return;
+
+                    const distance = haversineDistance(
+                        address.lat,
+                        address.lng,
+                        store.store.lat,
+                        store.store.lng
+                    );
+
+                    let fee;
+                    if (distance < 5) fee = 0;
+                    else if (distance < 20) fee = Math.round(distance * 3000);
+                    else if (distance < 100) fee = Math.round(distance * 2000);
+                    else fee = 100000;
+
+                    storeDoc.shippingFee = fee;
+                    await storeDoc.save();
+                    store.shippingFee = storeDoc.shippingFee;
+                })
+            );
+
+            res.status(200).send({message: "Success", data: storeCarts})
+        } catch (error) {
+            res.status(500).send({ message: error.message })
+        }
+
     }
 };
 

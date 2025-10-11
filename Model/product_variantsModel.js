@@ -71,6 +71,7 @@ productVariantsSchema.pre("save", async function (next) {
         await cart_item.find({variant_id: this._id})
         cart_item.is_out_of_stock = true
         cart_item.quantity = 0
+        cart_item.is_chosen = false
         await cart_item.save()
     }
     next()

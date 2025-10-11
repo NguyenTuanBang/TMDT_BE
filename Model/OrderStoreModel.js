@@ -17,7 +17,7 @@ const OrderStoreSchema = new mongoose.Schema({
         ref: "Promotion"
     },
     subTotal:{
-        type:Number
+        type: Number
     },
     finalTotal:{
         type: Number

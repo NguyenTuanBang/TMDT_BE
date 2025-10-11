@@ -16,11 +16,11 @@ const AuditLogSchema = new mongoose.Schema({
         type: String,
         enum: ["create", "update", "delete", "status_change"]
     },
-    changes:{
+    changes:[{
         field: {type: String},
         oldValue:{type: mongoose.Schema.Types.Mixed},
         newValue:{type: mongoose.Schema.Types.Mixed},
-    },
+    }],
     performedBy:{
         type: mongoose.Schema.Types.ObjectId,
         ref: "User"

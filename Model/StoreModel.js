@@ -19,7 +19,13 @@ const storeSchema = new mongoose.Schema({
     },
     citizenCode:{type: String, required: true},
     citizenImageFront : {type: String, required: true},
-    citizenImageBack : {type: String, required: true}
+    citizenImageBack : {type: String, required: true},
+    lat: {
+        type: Number
+    },
+    lng:{
+        type: Number
+    }
 }, {
     timestamps: true
 })

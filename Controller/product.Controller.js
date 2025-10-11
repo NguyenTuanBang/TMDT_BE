@@ -5,10 +5,18 @@ const commonLookups = [
   // join store
   {
     $lookup: {
-      from: "stores", 
+      from: "stores",
       localField: "store_id",
       foreignField: "_id",
       as: "store",
+      pipeline: [
+        {
+          $project: {
+            _id: 1,
+            name: 1
+          }
+        }
+      ]
     },
   },
   { $unwind: { path: "$store", preserveNullAndEmptyArrays: true } },
@@ -18,11 +26,11 @@ const commonLookups = [
   {
     $lookup: {
       from: "producttags",
-      let: {cid: "$_id"},
+      let: { cid: "$_id" },
       pipeline: [
-        {$match: { $expr: { $eq: ["$product_id", "$$cid"] } }},
+        { $match: { $expr: { $eq: ["$product_id", "$$cid"] } } },
         {
-          $lookup:{
+          $lookup: {
             from: "tags",
             localField: "tag_id",
             foreignField: "_id",
@@ -37,23 +45,34 @@ const commonLookups = [
   {
     $lookup: {
       from: "productvariants",
-      let: {pvid: "$_id"},
-      pipeline:[
-        {$match: { $expr: { $eq: ["$product_id", "$$pvid"] } }},
+      let: { pvid: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$product_id", "$$pvid"] } } },
         {
-          $lookup:{
+          $lookup: {
             from: "images",
             localField: "image",
             foreignField: "_id",
             as: "image"
           }
         },
+        {
+          $lookup:{
+            from: "sizes",
+            localField: "size",
+            foreignField: "_id",
+            as: 'size'
+          }
+        },
         { $unwind: { path: "$image", preserveNullAndEmptyArrays: true } },
+        { $unwind: { path: "$size", preserveNullAndEmptyArrays: true } },
       ],
       as: "variants"
     },
   }
 ]
+
+
 const productController = {
   getAll: async (req, res) => {
     try {
@@ -61,7 +80,7 @@ const productController = {
       const name = req.query.name || "";
       const query = {};
 
-      
+
       if (name) query.name = { $regex: name, $options: "i" };
       query.status = "Đang bán"
 
@@ -106,7 +125,7 @@ const productController = {
   getMostFavourite: async (req, res) => {
     try {
       const data = await ProductModel.aggregate([
-        {$match:{status: "Đang bán"}},
+        { $match: { status: "Đang bán" } },
         { $sort: { traded_count: -1 } },
         { $limit: 10 },
         ...commonLookups,
@@ -121,7 +140,7 @@ const productController = {
   getTopRating: async (req, res) => {
     try {
       const data = await ProductModel.aggregate([
-        {$match:{status: "Đang bán"}},
+        { $match: { status: "Đang bán" } },
         { $sort: { curRating: -1 } },
         { $limit: 10 },
         ...commonLookups,
@@ -142,7 +161,7 @@ const productController = {
       const totalResults = await ProductModel.countDocuments({ name: regex });
 
       const data = await ProductModel.aggregate([
-        { $match: { name: regex ,status: "Đang bán"} },
+        { $match: { name: regex, status: "Đang bán" } },
         { $limit: 5 },
         ...commonLookups,
         { $addFields: { mainImage: { $first: "$variants.image" } } },
@@ -174,7 +193,7 @@ const productController = {
       const numberOfPages = Math.ceil(itemQuantity / 20);
 
       const data = await ProductModel.aggregate([
-        { $match:{ ...rangeQuery, status: "Đang bán"}},
+        { $match: { ...rangeQuery, status: "Đang bán" } },
         ...commonLookups,
         { $skip: (curPage - 1) * 20 },
         { $limit: 20 },
